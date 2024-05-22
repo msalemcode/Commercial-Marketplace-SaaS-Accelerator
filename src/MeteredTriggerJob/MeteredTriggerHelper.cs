@@ -111,6 +111,12 @@ public class Executor
             //Get all Scheduled Data
             var getAllScheduledTasks = schedulerService.GetScheduledTasks();
 
+            //Loging the count of all scheduled items
+            LogLine($"Total Scheduled Items: {getAllScheduledTasks.Count}", true);
+            foreach (var item in getAllScheduledTasks)
+            {
+                LogLine($"Scheduled Item Id: {item.Id} Scheduler Name: {item.SchedulerName} ", true);
+            }
 
             //GetCurrentUTC time
             DateTime _currentUTCTime = DateTime.UtcNow;
@@ -122,17 +128,17 @@ public class Executor
             //Process each scheduler frequency
             foreach (SchedulerFrequencyEnum frequency in Enum.GetValues(typeof(SchedulerFrequencyEnum)))
             {
-
+                LogLine($"==== Check if  {frequency} is enabled", true);
                 var ableToParse = bool.TryParse(this.applicationConfigService.GetValueByName($"Enable{frequency}MeterSchedules"), out bool runSchedulerForThisFrequency);
 
                 if (ableToParse && runSchedulerForThisFrequency)
                 {
-                    LogLine($"==== Checking all {frequency} scheduled items at {_currentUTCTime} UTC. ====");
+                    LogLine($"==== Checking all {frequency} scheduled items at {_currentUTCTime} UTC. ====",true);
 
                     var scheduledItems = getAllScheduledTasks
                         .Where(a => a.Frequency == frequency.ToString())
                         .ToList();
-
+                    LogLine($"Total Scheduled Items for Frequency {frequency}: {scheduledItems.Count}", true);
                     foreach (var scheduledItem in scheduledItems)
                     {
                         // Get the run time.
@@ -140,10 +146,9 @@ public class Executor
                         DateTime? _nextRunTime = scheduledItem.NextRunTime ?? scheduledItem.StartDate;
                         int timeDifferentInHours = (int)_currentUTCTime.Subtract(_nextRunTime.Value).TotalHours;
 
+
                         // Print the scheduled Item and the expected run date
-                        PrintScheduler(scheduledItem,
-                            _nextRunTime,
-                            timeDifferentInHours);
+                        PrintScheduler(scheduledItem, _nextRunTime,timeDifferentInHours);
 
                         //Past scheduler items
                         if (timeDifferentInHours > 0)
@@ -166,7 +171,7 @@ public class Executor
                         }
                         else if (timeDifferentInHours < 0)
                         {
-                            LogLine($"Scheduled Item Id: {scheduledItem.Id} future run will be at {_nextRunTime} UTC.");
+                            LogLine($"Scheduled Item Id: {scheduledItem.Id} future run will be at {_nextRunTime} UTC.", true);
 
                             continue;
                         }
@@ -176,20 +181,20 @@ public class Executor
                         }
                         else
                         {
-                            LogLine($"Scheduled Item Id: {scheduledItem.Id} will not run as it doesn't match any time difference logic. {_nextRunTime} UTC.");
+                            LogLine($"Scheduled Item Id: {scheduledItem.Id} will not run as it doesn't match any time difference logic. {_nextRunTime} UTC.", true);
                         }
 
                     }
                 }
                 else
                 {
-                    LogLine($"{frequency} scheduled items will not be run as it's disabled in the application config.");
+                    LogLine($"{frequency} scheduled items will not be run as it's disabled in the application config.", true);
                 }
             }
         }
         else
         {
-            LogLine("Scheduled items will not be run because scheduler engine is disabled in the application config.");
+            LogLine("Scheduled items will not be run because scheduler engine is disabled in the application config.", true);
         }
     }
     /// <summary>
@@ -287,13 +292,13 @@ public class Executor
             _ = bool.TryParse(applicationConfigService.GetValueByName("EnablesFailureSchedulerEmail"), out bool enablesFailureSchedulerEmail);
             if(enablesFailureSchedulerEmail || enablesSuccessfulSchedulerEmail)
             {
-                LogLine("Send scheduled Email");
+                LogLine("Send scheduled Email", true);
                 schedulerService.SendSchedulerEmail(item, newMeteredAuditLog);
             }
         }
         catch (Exception ex)
         {
-            LogLine(ex.Message);
+            LogLine(ex.Message, true);
         }
     }
 
@@ -314,7 +319,7 @@ public class Executor
                           $"Dim : {item.Dimension} " + Environment.NewLine +
                           $"Start Date : {item.StartDate} " + Environment.NewLine +
                           $"NextRun : {item.NextRunTime}" + Environment.NewLine +
-                          $"TimeDifferenceInHours : {timeDifferenceInHours}" + Environment.NewLine );
+                          $"TimeDifferenceInHours : {timeDifferenceInHours}" + Environment.NewLine, true);
     }
     /// <summary>
     /// Get Next Run Time
